@@ -1,0 +1,1151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>EPOCH — Cognitive Twin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Serif:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --film:#080B0F; --panel:#141A22; --panel-2:#0F141B;
+    --seam:#232E3B; --seam-soft:#1A2531;
+    --ink:#C9D3DD; --ink-dim:#78889A; --ink-faint:#4C5A6A;
+    --lightbox:#ECF0F4; --lightbox-ink:#1B2530; --lightbox-dim:#5A6675; --lightbox-seam:#CDD6DF;
+    --phosphor:#31DAC4; --amber:#F2B65A; --alert:#FF6B6B;
+    --sans:"IBM Plex Sans",ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+    --serif:"IBM Plex Serif",Georgia,"Times New Roman",serif;
+    --mono:"IBM Plex Mono",ui-monospace,"SF Mono",Menlo,monospace;
+  }
+  * { box-sizing:border-box; }
+  html,body { height:100%; }
+  body {
+    margin:0; background:var(--film); color:var(--ink);
+    font-family:var(--sans); font-size:14px; line-height:1.5;
+    -webkit-font-smoothing:antialiased; overflow-x:hidden;
+  }
+  button { font-family:inherit; }
+  ::selection { background:rgba(49,218,196,.28); }
+
+  #app { display:grid; grid-template-columns:300px 1fr; height:100%; max-width:100vw; }
+  #rail, #reading { min-width:0; }
+
+  /* ---------- console rail ---------- */
+  #rail {
+    background:var(--panel-2); border-right:1px solid var(--seam);
+    display:flex; flex-direction:column; min-height:0;
+  }
+  .nameplate {
+    padding:20px 22px 18px; border-bottom:1px solid var(--seam-soft);
+  }
+  .nameplate b {
+    font-family:var(--mono); font-weight:500; font-size:12px;
+    letter-spacing:.22em; color:var(--ink);
+  }
+  .nameplate span {
+    display:block; margin-top:6px; font-size:12px; color:var(--ink-dim);
+  }
+  .rail-body { padding:18px 22px; overflow-y:auto; flex:1; min-height:0; }
+  .grp { margin-bottom:26px; }
+  .grp-label {
+    font-size:11px; font-weight:600; letter-spacing:.03em;
+    color:var(--ink-faint); margin-bottom:10px;
+  }
+
+  /* connection module */
+  .link-state {
+    display:flex; align-items:center; gap:8px; margin-bottom:10px;
+    font-size:12px; letter-spacing:.02em;
+  }
+  .dot { width:8px; height:8px; border-radius:50%; background:var(--amber); flex:none; }
+  .dot.live { background:var(--phosphor); box-shadow:0 0 0 3px rgba(49,218,196,.16); }
+  .link-state .word { color:var(--amber); font-weight:600; }
+  .link-state.live .word { color:var(--phosphor); }
+  .link-meta { font-size:11px; color:var(--ink-dim); font-family:var(--mono); }
+
+  #token {
+    width:100%; margin-top:10px; background:var(--film);
+    border:1px solid var(--seam); color:var(--ink); border-radius:4px;
+    padding:9px 10px; font-family:var(--mono); font-size:11px; line-height:1.4;
+  }
+  #token::placeholder { color:var(--ink-faint); }
+  #token:focus-visible, #q:focus-visible, .example:focus-visible,
+  .trace:focus-visible, #site:focus-visible, .keybtn:focus-visible,
+  #attach:focus-visible, #mintRole:focus-visible, .manual > summary:focus-visible {
+    outline:2px solid var(--phosphor); outline-offset:1px;
+  }
+  .hint {
+    margin-top:8px; font-size:11px; color:var(--ink-faint); line-height:1.5;
+  }
+  .hint code {
+    font-family:var(--mono); color:var(--ink-dim); font-size:10.5px;
+    word-break:break-all;
+  }
+  .link-err {
+    margin-top:8px; font-size:11px; color:var(--alert); line-height:1.5;
+    display:none;
+  }
+  .link-err.show { display:block; }
+
+  .mint-row { display:flex; gap:8px; margin-bottom:10px; }
+  #mintRole {
+    flex:none; width:82px; background:var(--film); border:1px solid var(--seam);
+    color:var(--ink); border-radius:4px; padding:8px 6px; font-size:12px;
+    font-family:var(--mono);
+  }
+  .mint-row .keybtn { flex:1; margin-top:0; }
+  .manual { margin-top:4px; }
+  .manual > summary {
+    list-style:none; cursor:pointer; font-size:11px; color:var(--ink-dim);
+    padding:4px 0;
+  }
+  .manual > summary::-webkit-details-marker { display:none; }
+  .manual > summary::before { content:"▸ "; color:var(--ink-faint); }
+  .manual[open] > summary::before { content:"▾ "; }
+
+  .keybtn {
+    margin-top:12px; width:100%; padding:9px 12px; border-radius:5px;
+    border:1px solid var(--seam); background:var(--panel); color:var(--ink);
+    font-size:12px; font-weight:600; letter-spacing:.02em; cursor:pointer;
+  }
+  .keybtn:disabled { opacity:.55; cursor:progress; }
+  .keybtn:hover { border-color:var(--ink-faint); }
+  .keybtn.primary {
+    background:var(--phosphor); border-color:var(--phosphor); color:var(--film);
+  }
+  .keybtn.primary:hover { filter:brightness(1.06); }
+
+  #site {
+    width:100%; background:var(--film); border:1px solid var(--seam);
+    color:var(--ink); border-radius:4px; padding:8px 10px; font-size:12px;
+    font-family:var(--mono);
+  }
+  .site-warn {
+    margin-top:8px; font-size:11px; color:var(--amber); line-height:1.5;
+    display:none;
+  }
+  .site-warn.show { display:block; }
+
+  .readout {
+    font-family:var(--mono); font-size:12px; color:var(--ink);
+    display:flex; align-items:baseline; gap:8px;
+  }
+  .readout small { color:var(--ink-faint); font-size:10px; letter-spacing:.04em; }
+
+  #log { list-style:none; margin:0; padding:0; }
+  #log li {
+    font-family:var(--mono); font-size:10.5px; color:var(--ink-dim);
+    padding:3px 0; border-bottom:1px dashed var(--seam-soft); display:flex; gap:8px;
+  }
+  #log li:last-child { border-bottom:0; }
+  #log time { color:var(--ink-faint); flex:none; }
+  #log .empty { border:0; color:var(--ink-faint); font-style:italic; }
+
+  /* ---------- reading area ---------- */
+  #reading { display:flex; flex-direction:column; min-height:0; min-width:0; overflow:hidden; }
+  #thread {
+    flex:1; overflow-y:auto; overflow-x:hidden; padding:32px 32px 24px; min-width:0;
+    display:flex; flex-direction:column; gap:22px;
+  }
+
+  /* empty state */
+  #empty {
+    margin:auto; width:100%; max-width:480px; text-align:center;
+    background:var(--panel); border:1px solid var(--seam); border-radius:10px;
+    padding:32px 30px;
+  }
+  #empty .invite {
+    font-family:var(--serif); font-size:16px; line-height:1.6;
+    color:var(--ink); margin:0 0 24px;
+  }
+  #empty .invite em { color:var(--phosphor); font-style:italic; white-space:nowrap; }
+  .steps {
+    list-style:none; margin:0 0 24px; padding:0; text-align:left;
+    display:flex; flex-direction:column; gap:12px;
+  }
+  .steps li { display:flex; gap:12px; align-items:flex-start; font-size:13px; color:var(--ink-dim); min-width:0; }
+  .steps b {
+    font-family:var(--mono); font-size:11px; color:var(--phosphor);
+    border:1px solid var(--seam); border-radius:50%;
+    width:20px; height:20px; display:grid; place-items:center; flex:none; margin-top:1px;
+  }
+  .steps li strong { color:var(--ink); font-weight:600; }
+  .ex-label { font-size:11px; font-weight:600; letter-spacing:.03em; color:var(--ink-faint); margin-bottom:10px; }
+  .examples { display:flex; flex-direction:column; gap:8px; }
+  .example {
+    text-align:left; background:var(--panel-2); border:1px solid var(--seam);
+    color:var(--ink); border-radius:6px; padding:9px 12px; font-size:12.5px;
+    cursor:pointer; min-width:0;
+  }
+  .example:hover:not(:disabled) { border-color:var(--ink-faint); }
+  .example:disabled { opacity:.4; cursor:not-allowed; }
+
+  /* messages */
+  .turn { display:flex; flex-direction:column; gap:6px; max-width:760px; }
+  .turn.you { align-self:flex-end; align-items:flex-end; }
+  .turn-tag {
+    font-size:10.5px; letter-spacing:.05em; color:var(--ink-faint);
+    font-weight:600;
+  }
+  .bubble-you {
+    background:var(--panel); border:1px solid var(--seam);
+    border-radius:8px 8px 2px 8px; padding:12px 14px; font-size:13.5px;
+    color:var(--ink); white-space:pre-wrap;
+  }
+  .bubble-you .film-thumb {
+    display:block; margin-bottom:10px; border-radius:3px; max-height:150px;
+    border:1px solid var(--seam);
+  }
+
+  /* the lit film — where a read lands */
+  .film-card {
+    background:var(--lightbox); color:var(--lightbox-ink);
+    border-radius:4px; overflow:hidden;
+    box-shadow:inset 0 0 70px rgba(255,255,255,.55), 0 0 0 1px var(--lightbox-seam), 0 18px 40px -24px #000;
+  }
+  .film-head {
+    display:flex; justify-content:space-between; align-items:center; gap:12px;
+    padding:10px 16px; background:#E1E7ED; border-bottom:1px solid var(--lightbox-seam);
+    font-size:11.5px; color:var(--lightbox-dim);
+  }
+  .film-head b { color:var(--lightbox-ink); font-weight:600; letter-spacing:.01em; }
+  .film-head .meta { font-family:var(--mono); font-size:10.5px; }
+  .film-body {
+    padding:18px 20px; font-family:var(--serif); font-size:15px; line-height:1.64;
+    max-width:66ch;
+  }
+  .film-body p { margin:0 0 12px; }
+  .film-body p:last-child { margin-bottom:0; }
+  .film-body strong { font-weight:600; }
+  .film-body ul { margin:0 0 12px; padding-left:20px; }
+  .film-body li { margin:4px 0; }
+  .film-body code {
+    font-family:var(--mono); font-size:12.5px; background:#DFE5EB;
+    padding:1px 4px; border-radius:3px;
+  }
+  .traces {
+    padding:12px 16px 14px; background:#E7ECF1; border-top:1px solid var(--lightbox-seam);
+    display:flex; flex-wrap:wrap; gap:8px; align-items:center;
+  }
+  .traces .tlabel { font-size:10.5px; letter-spacing:.04em; color:var(--lightbox-dim); font-weight:600; }
+  .trace {
+    font-size:11px; color:var(--lightbox-ink);
+    background:#F4F7F9; border:1px solid var(--lightbox-seam); border-radius:4px;
+    padding:3px 8px; cursor:pointer; display:inline-flex; gap:6px; align-items:baseline;
+  }
+  .trace:hover { background:#fff; }
+  .trace .tid { font-family:var(--mono); font-size:9.5px; color:var(--lightbox-dim); }
+  .trace.on { background:var(--lightbox-ink); border-color:var(--lightbox-ink); color:#EEF2F6; }
+  .trace.on .tid { color:#9FB0C2; }
+  .traces .also { width:100%; font-size:10.5px; color:var(--lightbox-dim); margin-top:2px; }
+
+  .trace-panel {
+    display:none; padding:13px 16px 15px; background:#EEF2F6;
+    border-top:1px solid var(--lightbox-seam); font-family:var(--sans);
+  }
+  .trace-panel.show { display:block; }
+  .trace-panel .tp-head { display:flex; justify-content:space-between; align-items:baseline; gap:10px; }
+  .trace-panel h4 { margin:0; font-size:12.5px; color:var(--lightbox-ink); }
+  .trace-panel .tp-id { font-family:var(--mono); font-size:10px; color:var(--lightbox-dim); }
+  .trace-panel dl { margin:9px 0 0; display:grid; grid-template-columns:104px 1fr; gap:6px 12px; }
+  .trace-panel dt { font-size:10px; font-weight:600; color:var(--lightbox-dim); letter-spacing:.03em; padding-top:1px; }
+  .trace-panel dd { margin:0; font-size:12px; color:var(--lightbox-ink); line-height:1.5; }
+
+  /* pending read */
+  .pending { background:var(--panel); border:1px solid var(--seam); border-radius:4px; overflow:hidden; }
+  .pending .film-head { background:var(--panel); border-bottom:1px solid var(--seam); color:var(--ink-dim); }
+  .pending .film-head b { color:var(--ink); }
+  .scan { height:2px; background:var(--seam); position:relative; overflow:hidden; }
+  .scan::after {
+    content:""; position:absolute; inset:0 60% 0 0; background:var(--phosphor);
+    animation:scan 1.15s ease-in-out infinite;
+  }
+  .pending .pmsg { padding:14px 16px; font-size:12.5px; color:var(--ink-dim); }
+  @keyframes scan { 0%{left:-40%} 100%{left:100%} }
+
+  /* fault */
+  .fault {
+    border:1px solid rgba(255,107,107,.4); background:rgba(255,107,107,.06);
+    border-radius:6px; padding:12px 14px; font-size:12.5px; color:#FFB3B3; max-width:620px;
+  }
+  .fault b { color:var(--alert); font-weight:600; display:block; margin-bottom:3px; letter-spacing:.02em; }
+
+  /* ---------- composer ---------- */
+  #composer {
+    border-top:1px solid var(--seam); background:var(--panel-2);
+    padding:14px 32px 18px; display:flex; gap:10px; align-items:flex-end;
+  }
+  #attach {
+    flex:none; width:44px; height:44px; border-radius:6px;
+    border:1px solid var(--seam); background:var(--panel); color:var(--ink-dim);
+    font-size:16px; cursor:pointer; display:grid; place-items:center;
+  }
+  #attach:hover:not(:disabled) { color:var(--ink); border-color:var(--ink-faint); }
+  #attach:disabled { opacity:.4; cursor:not-allowed; }
+  #attach.armed { color:var(--phosphor); border-color:var(--phosphor); }
+  .field { flex:1; min-width:0; display:flex; flex-direction:column; gap:8px; }
+  #filmstrip {
+    display:none; align-items:center; gap:8px; font-size:11px; color:var(--ink-dim);
+    font-family:var(--mono);
+  }
+  #filmstrip.show { display:flex; }
+  #filmstrip img { height:34px; border-radius:3px; border:1px solid var(--seam); }
+  #filmstrip button {
+    background:none; border:0; color:var(--ink-faint); cursor:pointer;
+    font-size:11px; text-decoration:underline;
+  }
+  #q {
+    width:100%; min-width:0; resize:none; background:var(--film); border:1px solid var(--seam);
+    color:var(--ink); border-radius:6px; padding:12px 13px; font-size:14px;
+    font-family:var(--sans); min-height:44px; max-height:160px; line-height:1.45;
+  }
+  #q::placeholder { color:var(--ink-faint); }
+  #q:disabled { opacity:.5; }
+  #send {
+    flex:none; height:44px; padding:0 20px; border-radius:6px; border:0;
+    background:var(--phosphor); color:var(--film); font-weight:600; font-size:13px;
+    letter-spacing:.03em; cursor:pointer;
+  }
+  #send:disabled { background:var(--seam); color:var(--ink-faint); cursor:not-allowed; }
+
+  /* ---------- briefing overlay ---------- */
+  #aboutBtn {
+    display:block; margin-top:10px; background:none; border:0; padding:0;
+    font-family:var(--sans); font-size:11px; color:var(--phosphor); cursor:pointer;
+    letter-spacing:.02em;
+  }
+  #aboutBtn:hover { text-decoration:underline; }
+  #aboutBtn:focus-visible { outline:2px solid var(--phosphor); outline-offset:2px; }
+
+  #briefing { position:fixed; inset:0; z-index:50; background:var(--film); }
+  #briefing[hidden] { display:none; }
+  .bf-scroll { position:absolute; inset:0; overflow-y:auto; }
+  .bf-inner { max-width:860px; margin:0 auto; padding:64px 32px 88px; }
+  .bf-x {
+    position:fixed; top:16px; right:20px; z-index:51; width:34px; height:34px;
+    border-radius:7px; border:1px solid var(--seam); background:var(--panel);
+    color:var(--ink-dim); font-size:18px; line-height:1; cursor:pointer;
+  }
+  .bf-x:hover { color:var(--ink); }
+  .bf-kicker {
+    font-family:var(--mono); font-size:11px; letter-spacing:.16em;
+    color:var(--phosphor); margin:0 0 18px;
+  }
+  .bf-head h1 {
+    font-family:var(--serif); font-weight:500; font-size:33px; line-height:1.16;
+    color:var(--ink); margin:0 0 18px;
+  }
+  .bf-lede {
+    font-family:var(--serif); font-size:16px; line-height:1.62; color:var(--ink-dim);
+    max-width:62ch; margin:0 0 46px;
+  }
+  .bf-lede em { color:var(--phosphor); font-style:italic; }
+
+  .bf-flow {
+    list-style:none; margin:0 0 34px; padding:0;
+    display:grid; grid-template-columns:repeat(3,1fr); gap:26px;
+  }
+  .bf-flow li {
+    background:var(--panel); border:1px solid var(--seam); border-radius:9px;
+    padding:18px 17px; position:relative;
+  }
+  .bf-flow li + li::before {
+    content:"→"; position:absolute; left:-18px; top:24px;
+    color:var(--ink-faint); font-size:13px;
+  }
+  .bf-num {
+    font-family:var(--mono); font-size:11px; color:var(--phosphor);
+    border:1px solid var(--seam); border-radius:50%;
+    width:20px; height:20px; display:grid; place-items:center;
+  }
+  .bf-flow h2 { font-size:14px; margin:12px 0 1px; color:var(--ink); }
+  .bf-verb {
+    font-family:var(--mono); font-size:11px; color:var(--phosphor);
+    letter-spacing:.05em; margin:0 0 9px;
+  }
+  .bf-flow p { font-size:12.5px; line-height:1.56; color:var(--ink-dim); margin:0; }
+
+  .bf-band { display:flex; flex-wrap:wrap; gap:8px; margin:0 0 46px; }
+  .bf-band span {
+    font-size:11px; color:var(--ink-dim); background:var(--panel-2);
+    border:1px solid var(--seam); border-radius:4px; padding:6px 10px;
+  }
+
+  .bf-who, .bf-map, .bf-trail { margin-bottom:42px; }
+  .bf-who h3, .bf-map h3, .bf-trail h3 {
+    font-size:11px; letter-spacing:.04em; font-weight:600;
+    color:var(--ink-faint); margin:0 0 15px;
+  }
+  .bf-map dl { margin:0; display:grid; grid-template-columns:190px 1fr; gap:11px 22px; }
+  .bf-map dt { font-size:12.5px; color:var(--ink); font-weight:600; }
+  .bf-map dd { font-size:12.5px; color:var(--ink-dim); margin:0; line-height:1.52; }
+
+  .bf-trail ul { list-style:none; margin:0; padding:0; }
+  .bf-trail li {
+    font-size:12.5px; color:var(--ink-dim); line-height:1.5;
+    padding:8px 0; border-bottom:1px dashed var(--seam-soft);
+    display:flex; gap:14px;
+  }
+  .bf-trail li:last-child { border-bottom:0; }
+  .bf-trail b { font-family:var(--mono); font-size:11px; color:var(--phosphor); flex:none; width:34px; }
+  .bf-trail i { color:var(--ink); font-style:normal; font-weight:600; }
+
+  /* who's-in-the-room + message path */
+  .bf-who .lede, .bf-twin .lede {
+    font-size:13px; line-height:1.6; color:var(--ink-dim);
+    margin:0 0 16px; max-width:64ch;
+  }
+  .bf-who .lede b { color:var(--ink); font-weight:600; }
+  .bf-path { list-style:none; margin:16px 0 0; padding:0; max-width:64ch; }
+  .bf-path li {
+    position:relative; padding:0 0 15px 24px;
+    border-left:1px solid var(--seam);
+    font-size:12.5px; line-height:1.55; color:var(--ink-dim);
+  }
+  .bf-path li:last-child { border-left-color:transparent; padding-bottom:0; }
+  .bf-path li::before {
+    content:""; position:absolute; left:-4px; top:3px; width:7px; height:7px;
+    border-radius:50%; background:var(--seam); box-shadow:0 0 0 3px var(--film);
+  }
+  .bf-path li .node {
+    font-family:var(--mono); font-size:10.5px; color:var(--phosphor);
+    margin-right:9px;
+  }
+  .bf-path li i { font-style:normal; color:var(--ink); }
+
+  .bf-twin b { width:64px; white-space:nowrap; }
+  .bf-inner .note {
+    font-size:12px; line-height:1.56; color:var(--ink-dim); max-width:64ch;
+    background:var(--panel-2); border:1px solid var(--seam);
+    border-left:3px solid var(--phosphor); border-radius:4px;
+    padding:11px 13px; margin:16px 0 0;
+  }
+  .bf-inner .note b { font-family:var(--sans); width:auto; color:var(--ink); font-weight:600; }
+  .bf-inner .note code { font-family:var(--mono); font-size:11px; color:var(--ink); }
+  .bf-inner .note i { font-style:normal; color:var(--phosphor); font-weight:600; }
+
+  .bf-levelset { list-style:none; margin:14px 0 0; padding:0; display:grid; gap:9px; }
+  .bf-levelset li {
+    font-size:12px; line-height:1.55; color:var(--ink-dim);
+    background:var(--panel-2); border:1px solid var(--seam);
+    border-radius:6px; padding:11px 13px;
+  }
+  .bf-levelset li b {
+    display:inline; width:auto; white-space:normal;
+    font-family:var(--sans); font-size:12px; font-weight:600; color:var(--ink);
+  }
+
+  .bf-actions { margin-top:6px; }
+  #bfEnter { width:auto; margin-top:0; padding:11px 22px; }
+
+  @media (max-width:760px) {
+    .bf-inner { padding:44px 20px 68px; }
+    .bf-head h1 { font-size:25px; }
+    .bf-flow { grid-template-columns:1fr; gap:30px; }
+    .bf-flow li + li::before {
+      content:"↓"; left:50%; top:-21px; transform:translateX(-50%);
+    }
+    .bf-map dl { grid-template-columns:1fr; gap:3px 0; }
+    .bf-map dt { margin-top:12px; }
+  }
+
+  /* ---------- mobile ---------- */
+  #railtoggle { display:none; }
+  @media (max-width:820px) {
+    #app { grid-template-columns:1fr; grid-template-rows:auto 1fr; }
+    #rail {
+      border-right:0; border-bottom:1px solid var(--seam);
+      position:relative; z-index:5;
+    }
+    .rail-body { display:none; position:absolute; top:100%; left:0; right:0;
+      background:var(--panel-2); border-bottom:1px solid var(--seam); max-height:70vh; }
+    #rail.open .rail-body { display:block; }
+    .nameplate { display:flex; align-items:center; justify-content:space-between; padding:14px 18px; }
+    .nameplate span { display:none; }
+    #railtoggle {
+      display:flex; align-items:center; gap:8px;
+      background:var(--panel); border:1px solid var(--seam); border-radius:5px;
+      color:var(--ink); font-size:12px; padding:6px 11px; cursor:pointer;
+    }
+    #thread { padding:20px 18px; }
+    #composer { padding:12px 18px 16px; }
+    .turn, .film-body { max-width:100%; }
+  }
+  @media (prefers-reduced-motion:reduce) {
+    .scan::after { animation:none; inset:0 50% 0 0; }
+  }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <div id="briefing" hidden>
+    <button class="bf-x" id="bfClose" type="button" aria-label="Close briefing">&times;</button>
+    <div class="bf-scroll">
+      <div class="bf-inner">
+        <p class="bf-kicker">EPOCH · Phase 5 — AI Engineering Masters</p>
+        <div class="bf-head">
+          <h1>Cognitive twins of human experts.</h1>
+          <p class="bf-lede">Give EPOCH an expert's raw material — audio, video, documents,
+            images from Dr. Sarah Chen's clinical work. It learns how she reasons and answers
+            <em>new</em> questions the way she would, showing you which of her traces it drew on.</p>
+        </div>
+
+        <section class="bf-who">
+          <h3>Who you are — and who answers</h3>
+          <p class="lede">You're a <b>clinician inside one hospital</b> — a doctor,
+            resident, or radiographer your hospital issued a token to. Not a patient.
+            You have a chest film and the radiologist isn't around: 2 a.m. in the ED,
+            a clinic with no radiologist on site, a resident learning to read films.
+            Instead of a hallway curbside consult you ask <b>Dr. Chen's cognitive
+            twin</b> — a stand-in for her read, built from her documented reasoning.
+            Not her, live.</p>
+          <ol class="bf-path">
+            <li><span class="node">YOU</span>upload a film and a question. Your token
+              already carries your <i>role</i> and your <i>hospital</i>.</li>
+            <li><span class="node">GATEWAY</span>checks your identity and binds the
+              request to your hospital. A hospital-A token used as hospital B is refused.</li>
+            <li><span class="node">TRACE LAYER</span>retrieves the closest patterns from
+              Dr. Chen's corpus — <i>your hospital's copy only</i> — and follows their
+              links one hop.</li>
+            <li><span class="node">TWIN LAYER</span>asks Vertex Gemini to write the read
+              <i>as Dr. Chen</i>, grounded on exactly those patterns and the pixels of
+              your film.</li>
+            <li><span class="node">YOU</span>get her twin's answer and the traces it
+              leaned on — click one to read the source.</li>
+          </ol>
+          <p class="note"><b>Your token carries two facts.</b>
+            <i>hospital</i> (tenant_A / tenant_B) — each hospital holds its own isolated
+            copy of Dr. Chen's knowledge; nothing crosses between them.
+            <i>role</i> (admin / viewer) — admin can trigger privileged actions, viewer
+            can only ask. In this demo you choose both with <i>Get a demo token</i>; in
+            production your hospital's SSO sets them and you never see the token.</p>
+        </section>
+
+        <ol class="bf-flow">
+          <li>
+            <span class="bf-num">1</span>
+            <h2>Trace Layer</h2>
+            <p class="bf-verb">Ingest</p>
+            <p>Her multimodal corpus, stored per-tenant and per-expert. Postgres row-level
+              security plus a per-tenant FAISS index — one hospital's material never reaches
+              another's.</p>
+          </li>
+          <li>
+            <span class="bf-num">2</span>
+            <h2>Pattern Layer</h2>
+            <p class="bf-verb">Extract</p>
+            <p>How she reasons, pulled out of that corpus into a structured knowledge graph of
+              her diagnostic patterns.</p>
+          </li>
+          <li>
+            <span class="bf-num">3</span>
+            <h2>Twin Layer</h2>
+            <p class="bf-verb">Serve</p>
+            <p>A retrieval-augmented agent answers a new question as Dr. Chen would, and cites
+              the specific traces behind that answer.</p>
+          </li>
+        </ol>
+
+        <div class="bf-band">
+          <span>Cloud-native on GCP</span>
+          <span>Multi-tenant — Postgres RLS · per-tenant FAISS · JWT RBAC</span>
+          <span>8-second hard SLA per query</span>
+          <span>Full usage metering</span>
+        </div>
+
+        <section class="bf-trail bf-twin">
+          <h3>How Dr. Chen's twin got here</h3>
+          <p class="lede"><b>Dr. Sarah Chen</b>, a thoracic radiologist, is the
+            worked example the whole of Phase 5 is built around — each session
+            moved her twin one step closer to this URL.</p>
+          <ul>
+            <li><b>15.1</b><span><i>Indexed.</i> Her corpus — chest films, reports, dictations — loaded into a FAISS index fenced to her hospital by row-level security.</span></li>
+            <li><b>15.2&ndash;15.3</b><span><i>Bound.</i> Her reasoning wrapped in a role-aware agent: only the tools her role allows, a per-role model, an audit trail, and an 8-second deadline on every answer.</span></li>
+            <li><b>16.1&ndash;16.2</b><span><i>Served.</i> That agent went behind the gateway as /v1 and /v2/agent/invoke; the smoke suite checks that her role and her citations survive the round trip.</span></li>
+            <li><b>17.1&ndash;17.3</b><span><i>Shipped.</i> Hardened into an image, given a private registry and a scoped identity, and deployed here — her twin now answers from a public address.</span></li>
+          </ul>
+          <p class="note"><b>On this deployment:</b> Dr. Chen's corpus ships
+            inside the container as ~20 diagnostic traces per site. On boot
+            each site's traces are embedded (Vertex <code>text-embedding-004</code>)
+            into its own FAISS index. A question retrieves the top matches from
+            <i>your</i> site only, expands one hop along their pattern links,
+            and the Vertex Gemini read is grounded on exactly those traces. The
+            cited IDs are the traces the twin actually drew on — click one to
+            read it. The whole pipeline runs under the 15.3 hard deadline.</p>
+          <ul class="bf-levelset">
+            <li><b>The corpus is her reasoning, not a case archive.</b> Each
+              trace is a pattern — consolidation, effusion, tension
+              pneumothorax — with the features she keys on and her logic. The
+              film you upload is treated as new; nothing in the corpus is a
+              prior read of it.</li>
+            <li><b>Retrieval is driven by your text, not the image.</b> Your
+              words are matched against the pattern library; the film's pixels
+              only reach the generation step. "Here's a film, what do you see?"
+              gives retrieval little to grab — describe what you're looking at
+              and it works.</li>
+            <li><b>The corpus was written, not extracted.</b> The spec's
+              pipeline learns the patterns from her raw dictations and
+              annotated cases. Dr. Chen is a course persona with no dictations,
+              so the ~20 patterns per site were authored directly. Everything
+              on top — embedding, retrieval, one-hop expansion, grounding,
+              citations — is real.</li>
+          </ul>
+        </section>
+
+        <section class="bf-map">
+          <h3>What's on this screen</h3>
+          <dl>
+            <dt>The console, left</dt>
+            <dd>Your session. The token sets your role and binds you to one tenant; a read sent
+              as a different tenant is refused.</dd>
+            <dt>Get a demo token</dt>
+            <dd>Stands in for the identity provider. A real deployment gets this token from the
+              hospital's SSO — you'd never see it.</dd>
+            <dt>Attach a film + Ask</dt>
+            <dd>A query into the twin. Your words drive retrieval, so name what you
+              see — "large left opacity, no mediastinal shift" pulls better traces
+              than "what is this?".</dd>
+            <dt>The film card</dt>
+            <dd>The twin's answer: the reasoning it returns as Dr. Chen, dominant finding first,
+              the feature it rests on named. The header shows how many traces were retrieved
+              and cited, and the retrieval time.</dd>
+            <dt>Traces cited</dt>
+            <dd>The patterns from your hospital's corpus the twin actually drew on. Click
+              a chip to read that trace — finding, features, her reasoning, her
+              recommendation.</dd>
+          </dl>
+        </section>
+
+        <section class="bf-trail">
+          <h3>The build — Phase 5, session by session</h3>
+          <ul>
+            <li><b>15.1</b><span><i>Trace Layer.</i> Per-tenant FAISS, Postgres row-level security, isolated checkpointing.</span></li>
+            <li><b>15.2</b><span><i>Action isolation.</i> JWT auth, a role&nbsp;&rarr;&nbsp;tools RBAC matrix, per-role model binding, an audit log.</span></li>
+            <li><b>15.3</b><span><i>The SLA.</i> A hard per-query deadline — a timeout becomes a 504 — plus a circuit breaker.</span></li>
+            <li><b>16.1</b><span><i>The cluster.</i> The gateway wired to the LLM backend.</span></li>
+            <li><b>16.2</b><span><i>Smoke suite.</i> Eight integration tests, trace-span assertions over status codes, /v1&nbsp;+&nbsp;/v2 contracts.</span></li>
+            <li><b>16.x</b><span><i>Load &amp; metering.</i> A Locust load profile and per-query usage metering.</span></li>
+            <li><b>17.1</b><span><i>The image.</i> Packaged, non-root, vulnerability-scanned.</span></li>
+            <li><b>17.2</b><span><i>GCP foundation.</i> Artifact Registry and a least-privilege runtime service account.</span></li>
+            <li><b>17.3</b><span><i>This deploy.</i> Public Cloud Run, Secret Manager, a private VPC path, and this UI.</span></li>
+          </ul>
+        </section>
+
+        <div class="bf-actions">
+          <button id="bfEnter" class="keybtn primary" type="button">Enter the console</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <aside id="rail">
+    <div class="nameplate">
+      <div>
+        <b>EPOCH</b>
+        <span>Dr. Sarah Chen — Cognitive Twin</span>
+        <button id="aboutBtn" type="button">About EPOCH</button>
+      </div>
+      <button id="railtoggle" aria-expanded="false" aria-controls="railbody">
+        <span class="dot" id="mDot"></span> Console
+      </button>
+    </div>
+
+    <div class="rail-body" id="railbody">
+      <div class="grp">
+        <div class="grp-label">Site</div>
+        <select id="site">
+          <option value="tenant_A">tenant_A</option>
+          <option value="tenant_B">tenant_B</option>
+        </select>
+        <p class="site-warn" id="siteWarn"></p>
+      </div>
+
+      <div class="grp">
+        <div class="grp-label">Session</div>
+        <div class="link-state" id="linkState" role="status">
+          <span class="dot" id="dot"></span>
+          <span class="word" id="linkWord">Offline</span>
+          <span class="link-meta" id="linkMeta"></span>
+        </div>
+        <div class="mint-row">
+          <select id="mintRole" aria-label="role for the demo token">
+            <option value="admin">admin</option>
+            <option value="viewer">viewer</option>
+          </select>
+          <button class="keybtn primary" id="mintBtn" type="button">Get a demo token</button>
+        </div>
+        <p class="hint">No login here — this build has no identity provider.
+          The button mints a token for the site selected above.</p>
+        <p class="link-err" id="linkErr"></p>
+        <details class="manual">
+          <summary>Paste a token instead</summary>
+          <input id="token" type="password" autocomplete="off" spellcheck="false"
+                 placeholder="Bearer JWT" />
+          <p class="hint"><code>python mint_jwt.py --role=admin --tenant=tenant_A</code></p>
+          <button class="keybtn" id="connect" type="button">Connect</button>
+        </details>
+      </div>
+
+      <div class="grp">
+        <div class="grp-label">Twin backend</div>
+        <div class="readout"><span id="model">idle</span><small>vertex ai · gemini</small></div>
+      </div>
+
+      <div class="grp">
+        <div class="grp-label">Session log</div>
+        <ul id="log"><li class="empty">Nothing yet.</li></ul>
+      </div>
+    </div>
+  </aside>
+
+  <main id="reading">
+    <div id="thread" aria-live="polite">
+      <div id="empty">
+        <p class="invite">Mount a chest film and ask. The twin reads it the way
+          <em>Dr. Sarah Chen</em> would — dominant finding first, the features
+          it rests on named, a next step at the end.</p>
+        <ol class="steps">
+          <li><b>1</b><span><strong>Sign in.</strong> Hit <em>Get a demo token</em> in the console — this build has no login. It mints a token for the selected site.</span></li>
+          <li><b>2</b><span><strong>Attach a film.</strong> Any chest radiograph — JPEG or PNG.</span></li>
+          <li><b>3</b><span><strong>Ask.</strong> A plain clinical question about what's on the film.</span></li>
+        </ol>
+        <div class="ex-label">Example questions</div>
+        <div class="examples" id="examples">
+          <button class="example" disabled>What's the dominant finding?</button>
+          <button class="example" disabled>Is there a pleural effusion, and what tells you?</button>
+          <button class="example" disabled>Assess the cardiomediastinal silhouette.</button>
+          <button class="example" disabled>Any lines or tubes — are they correctly sited?</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="composer">
+      <button id="attach" title="Attach a chest film" disabled aria-label="Attach a chest film">
+        <span aria-hidden="true">▤</span>
+      </button>
+      <input id="imgInput" type="file" accept="image/*" hidden />
+      <div class="field">
+        <div id="filmstrip">
+          <img id="filmthumb" alt="attached film" />
+          <span id="filmname"></span>
+          <button id="filmclear" type="button">remove</button>
+        </div>
+        <textarea id="q" rows="1" disabled placeholder="Connect a session to ask"></textarea>
+      </div>
+      <button id="send" disabled>Ask</button>
+    </div>
+  </main>
+</div>
+
+<script>
+(() => {
+  const $ = s => document.querySelector(s);
+  const els = {
+    token:$('#token'), connect:$('#connect'), dot:$('#dot'), mDot:$('#mDot'),
+    linkState:$('#linkState'), linkWord:$('#linkWord'), linkMeta:$('#linkMeta'),
+    linkErr:$('#linkErr'), site:$('#site'), siteWarn:$('#siteWarn'), model:$('#model'),
+    log:$('#log'), thread:$('#thread'), empty:$('#empty'), examples:$('#examples'),
+    attach:$('#attach'), imgInput:$('#imgInput'), filmstrip:$('#filmstrip'),
+    filmthumb:$('#filmthumb'), filmname:$('#filmname'), filmclear:$('#filmclear'),
+    q:$('#q'), send:$('#send'), rail:$('#rail'), railtoggle:$('#railtoggle'),
+    mintBtn:$('#mintBtn'), mintRole:$('#mintRole'), manual:$('.manual'),
+    briefing:$('#briefing'), bfEnter:$('#bfEnter'), bfClose:$('#bfClose'),
+    aboutBtn:$('#aboutBtn'),
+  };
+  const LS = { get:k=>{try{return localStorage.getItem(k)}catch{return null}},
+               set:(k,v)=>{try{localStorage.setItem(k,v)}catch{}},
+               del:k=>{try{localStorage.removeItem(k)}catch{}} };
+
+  let claims = null;          // decoded token payload, or null when offline
+  let pendingImage = null;
+  let thumbURL = null;
+
+  // ---- logging -----------------------------------------------------------
+  function log(msg) {
+    const first = els.log.querySelector('.empty');
+    if (first) first.remove();
+    const li = document.createElement('li');
+    const t = document.createElement('time');
+    t.textContent = new Date().toTimeString().slice(0,5);
+    li.appendChild(t);
+    li.appendChild(document.createTextNode(msg));
+    els.log.appendChild(li);
+    els.log.scrollTop = els.log.scrollHeight;
+  }
+
+  // ---- token decode (display only; the server verifies) ----------------
+  function decodeJwt(tok) {
+    const parts = tok.split('.');
+    if (parts.length !== 3) throw new Error('not a JWT');
+    const b = parts[1].replace(/-/g,'+').replace(/_/g,'/');
+    const pad = b + '==='.slice((b.length + 3) % 4);
+    const json = decodeURIComponent(atob(pad).split('').map(
+      c => '%' + c.charCodeAt(0).toString(16).padStart(2,'0')).join(''));
+    return JSON.parse(json);
+  }
+
+  // ---- connection state ------------------------------------------------
+  function setOffline(reason) {
+    claims = null;
+    LS.del('epoch_token');
+    els.linkState.classList.remove('live');
+    els.dot.classList.remove('live'); els.mDot.classList.remove('live');
+    els.linkWord.textContent = 'Offline';
+    els.linkMeta.textContent = '';
+    els.connect.textContent = 'Connect';
+    els.mintBtn.textContent = 'Get a demo token';
+    els.q.disabled = true; els.attach.disabled = true; els.send.disabled = true;
+    els.q.placeholder = 'Connect a session to ask';
+    els.examples.querySelectorAll('.example').forEach(b => b.disabled = true);
+    els.model.textContent = 'idle';
+    if (reason) { els.linkErr.textContent = reason; els.linkErr.classList.add('show'); }
+  }
+
+  function setLive() {
+    els.linkErr.classList.remove('show');
+    els.linkState.classList.add('live');
+    els.dot.classList.add('live'); els.mDot.classList.add('live');
+    els.linkWord.textContent = 'Live';
+    els.linkMeta.textContent = `${claims.role} · ${claims.hospital_id}`;
+    els.connect.textContent = 'Disconnect';
+    els.mintBtn.textContent = 'Disconnect';
+    // bind the site selector to the token's hospital
+    let opt = [...els.site.options].find(o => o.value === claims.hospital_id);
+    if (!opt) {
+      opt = new Option(claims.hospital_id, claims.hospital_id);
+      els.site.add(opt);
+    }
+    els.site.value = claims.hospital_id;
+    checkSite();
+    els.q.disabled = false; els.attach.disabled = false;
+    els.q.placeholder = 'Ask about the film…';
+    els.examples.querySelectorAll('.example').forEach(b => b.disabled = false);
+    els.model.textContent = 'ready';
+    refreshSend();
+  }
+
+  function connect() {
+    if (claims) { setOffline(); log('Session closed'); return; }
+    const tok = els.token.value.trim();
+    if (!tok) { setOffline('Paste a token first.'); return; }
+    let p;
+    try { p = decodeJwt(tok); }
+    catch { setOffline("That doesn't parse as a token. Mint one with mint_jwt.py."); return; }
+    if (!p.hospital_id || !p.role) { setOffline('Token is missing role or hospital_id.'); return; }
+    if (p.exp && p.exp * 1000 < Date.now()) { setOffline('Token has expired. Mint a fresh one.'); return; }
+    claims = p;
+    LS.set('epoch_token', tok);
+    setLive();
+    log(`Session live — ${p.role} @ ${p.hospital_id}`);
+  }
+
+  async function mint() {
+    if (claims) { setOffline(); log('Session closed'); return; }
+    els.linkErr.classList.remove('show');
+    els.mintBtn.disabled = true;
+    els.mintBtn.textContent = 'Minting…';
+    try {
+      const res = await fetch('/v1/dev-token', {
+        method:'POST', headers:{ 'Content-Type':'application/json' },
+        body: JSON.stringify({ role: els.mintRole.value, tenant: els.site.value }),
+      });
+      let data = {};
+      try { data = await res.json(); } catch {}
+      if (!res.ok) {
+        setOffline(res.status === 404
+          ? 'Demo tokens are off for this deployment — paste one instead.'
+          : (data.detail || 'Could not mint a token.'));
+        return;
+      }
+      els.token.value = data.token;
+      connect();
+    } catch (e) {
+      setOffline('Network error while minting a token.');
+    } finally {
+      els.mintBtn.disabled = false;
+      if (!claims) els.mintBtn.textContent = 'Get a demo token';
+    }
+  }
+
+  function checkSite() {
+    const live = !!claims;
+    if (live && els.site.value !== claims.hospital_id) {
+      els.siteWarn.textContent =
+        `Token is bound to ${claims.hospital_id}. Reads sent as ${els.site.value} will be refused.`;
+      els.siteWarn.classList.add('show');
+    } else {
+      els.siteWarn.classList.remove('show');
+    }
+  }
+
+  // ---- composer ------------------------------------------------------
+  function refreshSend() {
+    els.send.disabled = !(claims && els.q.value.trim());
+  }
+  function autoGrow() {
+    els.q.style.height = 'auto';
+    els.q.style.height = Math.min(els.q.scrollHeight, 160) + 'px';
+  }
+  function clearImage() {
+    pendingImage = null;
+    if (thumbURL) { URL.revokeObjectURL(thumbURL); thumbURL = null; }
+    els.imgInput.value = '';
+    els.filmstrip.classList.remove('show');
+    els.attach.classList.remove('armed');
+  }
+
+  // ---- lightweight, safe render of the twin's prose ------------------
+  function esc(s){ return s.replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])); }
+  function renderProse(text) {
+    const lines = esc(text).split('\n');
+    let html = '', list = null;
+    const inline = s => s
+      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+      .replace(/`([^`]+?)`/g, '<code>$1</code>');
+    for (const raw of lines) {
+      const line = raw.trim();
+      const m = line.match(/^[*\-]\s+(.*)/);
+      if (m) { list = list || ''; list += `<li>${inline(m[1])}</li>`; continue; }
+      if (list !== null) { html += `<ul>${list}</ul>`; list = null; }
+      if (line) html += `<p>${inline(line)}</p>`;
+    }
+    if (list !== null) html += `<ul>${list}</ul>`;
+    return html || '<p></p>';
+  }
+
+  function turnTag(text, cls) {
+    const t = document.createElement('div');
+    t.className = 'turn-tag'; t.textContent = text;
+    return t;
+  }
+
+  function addYou(question, imgURL) {
+    els.empty?.remove();
+    const wrap = document.createElement('div');
+    wrap.className = 'turn you';
+    wrap.appendChild(turnTag('You'));
+    const b = document.createElement('div');
+    b.className = 'bubble-you';
+    if (imgURL) {
+      const im = document.createElement('img');
+      im.className = 'film-thumb'; im.src = imgURL; im.alt = 'submitted film';
+      b.appendChild(im);
+    }
+    b.appendChild(document.createTextNode(question));
+    wrap.appendChild(b);
+    els.thread.appendChild(wrap);
+    els.thread.scrollTop = els.thread.scrollHeight;
+  }
+
+  function addPending() {
+    const wrap = document.createElement('div');
+    wrap.className = 'turn';
+    wrap.appendChild(turnTag('Read'));
+    const card = document.createElement('div');
+    card.className = 'pending';
+    card.innerHTML =
+      `<div class="film-head"><b>Dr. Sarah Chen — cognitive twin</b><span class="meta">reading…</span></div>
+       <div class="scan"></div>
+       <div class="pmsg">Reading the film against Dr. Chen's diagnostic traces.</div>`;
+    wrap.appendChild(card);
+    els.thread.appendChild(wrap);
+    els.thread.scrollTop = els.thread.scrollHeight;
+    return wrap;
+  }
+
+  async function loadTrace(id) {
+    const res = await fetch('/v1/trace/' + encodeURIComponent(id), {
+      headers: { 'Authorization': 'Bearer ' + els.token.value.trim() },
+    });
+    if (!res.ok) throw new Error('trace ' + res.status);
+    return res.json();
+  }
+
+  function fillRead(wrap, data, secs) {
+    const patternOf = {};
+    (data.retrieved || []).forEach(r => { patternOf[r.id] = r.pattern; });
+    const cited = data.cited_traces || [];
+    const chips = cited.map(id =>
+      `<button class="trace" data-id="${esc(id)}" title="Read this trace">` +
+      `${esc(patternOf[id] || 'trace')}<span class="tid">${esc(id)}</span></button>`
+    ).join('');
+    const alsoIds = (data.retrieved || [])
+      .filter(r => !r.linked && !cited.includes(r.id)).map(r => r.pattern);
+    const also = alsoIds.length
+      ? `<span class="also">Also retrieved: ${esc(alsoIds.join(', '))}</span>` : '';
+    const nRet = (data.retrieved || []).filter(r => !r.linked).length;
+    const meta = `${esc(data.model || 'gemini')} · ${secs}s` +
+      (nRet ? ` · ${nRet} retrieved, ${cited.length} cited` : '');
+
+    wrap.querySelector('.turn-tag').textContent = 'Read';
+    wrap.lastChild.className = 'film-card';
+    wrap.lastChild.innerHTML =
+      `<div class="film-head">
+         <b>Dr. Sarah Chen — cognitive twin</b>
+         <span class="meta">${meta}</span>
+       </div>
+       <div class="film-body">${renderProse(data.answer || '')}</div>
+       ${chips ? `<div class="traces"><span class="tlabel">Traces cited</span>${chips}${also}</div>
+       <div class="trace-panel"></div>` : ''}`;
+
+    const panel = wrap.querySelector('.trace-panel');
+    wrap.querySelectorAll('.trace').forEach(btn => btn.addEventListener('click', async () => {
+      const id = btn.dataset.id;
+      if (btn.classList.contains('on')) {
+        btn.classList.remove('on'); panel.classList.remove('show'); return;
+      }
+      wrap.querySelectorAll('.trace.on').forEach(b => b.classList.remove('on'));
+      btn.classList.add('on');
+      panel.classList.add('show');
+      panel.innerHTML = '<span class="tp-id">loading ' + esc(id) + '…</span>';
+      try {
+        const t = await loadTrace(id);
+        panel.innerHTML =
+          `<div class="tp-head"><h4>${esc(t.pattern)}</h4><span class="tp-id">${esc(t.id)}</span></div>
+           <dl>
+             <dt>Finding</dt><dd>${esc(t.finding)}</dd>
+             <dt>Features</dt><dd>${esc((t.features || []).join(' · '))}</dd>
+             <dt>Her reasoning</dt><dd>${esc(t.reasoning)}</dd>
+             <dt>Recommendation</dt><dd>${esc(t.recommendation)}</dd>
+           </dl>`;
+        log(`Opened trace ${id}`);
+      } catch (e) {
+        panel.innerHTML = '<span class="tp-id">could not load ' + esc(id) + ' — ' + esc(e.message) + '</span>';
+      }
+      chat.scrollTop = chat.scrollHeight;
+    }));
+    if (data.model) els.model.textContent = data.model;
+    els.thread.scrollTop = els.thread.scrollHeight;
+  }
+
+  function fillFault(wrap, title, detail) {
+    wrap.querySelector('.turn-tag').textContent = 'Fault';
+    const f = document.createElement('div');
+    f.className = 'fault';
+    f.innerHTML = `<b>${esc(title)}</b>${esc(detail)}`;
+    wrap.replaceChild(f, wrap.lastChild);
+    els.thread.scrollTop = els.thread.scrollHeight;
+  }
+
+  function faultCopy(status, detail) {
+    if (status === 401) return ['Session token rejected', 'Mint a fresh token and connect again.'];
+    if (status === 403) return ['Cross-site read refused',
+      detail || `This token can only read for ${claims?.hospital_id}. Switch Site to match, or mint a token for the site you want.`];
+    if (status === 503) return ['Twin backend not configured', detail || 'The service is up but the model backend is unset.'];
+    if (status === 504) return ['Read exceeded the SLA', detail || 'The 15.3 hard deadline fired before the twin finished. Try again — a warm index is faster.'];
+    if (status === 502) return ['Twin backend did not answer', detail || 'Try the read again.'];
+    return [`Read failed (${status})`, detail || 'Try again.'];
+  }
+
+  // ---- send --------------------------------------------------------
+  async function send() {
+    const question = els.q.value.trim();
+    if (!claims || !question) return;
+    const site = els.site.value;
+
+    const shownURL = thumbURL;
+    addYou(question, shownURL);
+    els.q.value = ''; autoGrow(); refreshSend();
+
+    const form = new FormData();
+    form.append('question', question);
+    if (pendingImage) form.append('image', pendingImage);
+    const hadImage = !!pendingImage;
+    clearImage();
+
+    const wrap = addPending();
+    els.send.disabled = true; els.send.textContent = 'Reading…';
+    const t0 = performance.now();
+
+    try {
+      const res = await fetch('/v1/chat', {
+        method:'POST',
+        headers:{ 'Authorization':'Bearer ' + els.token.value.trim(), 'X-Tenant-ID':site },
+        body: form,
+      });
+      const secs = ((performance.now() - t0) / 1000).toFixed(1);
+      let data = {};
+      try { data = await res.json(); } catch {}
+      if (!res.ok) {
+        const [title, detail] = faultCopy(res.status, data.detail);
+        fillFault(wrap, title, detail);
+        log(`Read failed — ${res.status}`);
+      } else {
+        fillRead(wrap, data, secs);
+        const nRet = (data.retrieved || []).filter(r => !r.linked).length;
+        const rm = data.retrieve_ms != null ? `, retrieval ${data.retrieve_ms}ms` : '';
+        log(`Read in ${secs}s — ${nRet} traces retrieved, ${(data.cited_traces || []).length} cited${rm}`);
+      }
+    } catch (err) {
+      fillFault(wrap, 'Network error', err.message + ' — check your connection and retry.');
+      log('Network error on read');
+    } finally {
+      els.send.textContent = 'Ask';
+      refreshSend();
+    }
+  }
+
+  // ---- briefing -----------------------------------------------------
+  function openBriefing() {
+    els.briefing.hidden = false;
+    const sc = els.briefing.querySelector('.bf-scroll');
+    if (sc) sc.scrollTop = 0;
+    els.bfEnter.focus();
+  }
+  function closeBriefing() {
+    els.briefing.hidden = true;
+    try { localStorage.setItem('epoch_seen_briefing', '1'); } catch {}
+  }
+  els.bfEnter.addEventListener('click', closeBriefing);
+  els.bfClose.addEventListener('click', closeBriefing);
+  els.aboutBtn.addEventListener('click', openBriefing);
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && !els.briefing.hidden) closeBriefing();
+  });
+
+  // ---- wiring ----------------------------------------------------
+  els.mintBtn.addEventListener('click', mint);
+  els.connect.addEventListener('click', connect);
+  els.token.addEventListener('keydown', e => { if (e.key === 'Enter') connect(); });
+  els.site.addEventListener('change', checkSite);
+  els.q.addEventListener('input', () => { autoGrow(); refreshSend(); });
+  els.q.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); }
+  });
+  els.send.addEventListener('click', send);
+  els.attach.addEventListener('click', () => els.imgInput.click());
+  els.imgInput.addEventListener('change', () => {
+    const f = els.imgInput.files[0] || null;
+    if (!f) return;
+    pendingImage = f;
+    if (thumbURL) URL.revokeObjectURL(thumbURL);
+    thumbURL = URL.createObjectURL(f);
+    els.filmthumb.src = thumbURL;
+    els.filmname.textContent = f.name;
+    els.filmstrip.classList.add('show');
+    els.attach.classList.add('armed');
+  });
+  els.filmclear.addEventListener('click', clearImage);
+  els.examples.addEventListener('click', e => {
+    const b = e.target.closest('.example');
+    if (!b || b.disabled) return;
+    els.q.value = b.textContent; autoGrow(); refreshSend(); els.q.focus();
+  });
+  els.railtoggle.addEventListener('click', () => {
+    const open = els.rail.classList.toggle('open');
+    els.railtoggle.setAttribute('aria-expanded', String(open));
+  });
+
+  // restore a prior token so a reload doesn't force a reconnect
+  const saved = LS.get('epoch_token');
+  if (saved) { els.token.value = saved; connect(); }
+  else setOffline();
+
+  // first visit gets the briefing; afterward it's behind "About EPOCH"
+  if (!LS.get('epoch_seen_briefing')) openBriefing();
+})();
+</script>
+</body>
+</html>

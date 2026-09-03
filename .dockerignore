@@ -1,0 +1,9 @@
+.venv/
+epoch-deploy/
+docs/
+**/__pycache__/
+*.pyc
+*.md
+.git/
+.gitignore
+.idea/

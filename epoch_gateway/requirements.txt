@@ -1,0 +1,11 @@
+# EPOCH gateway runtime dependencies. Single source of truth: the Dockerfile
+# installs from this file, and local dev should too:
+#   pip install -r epoch_gateway/requirements.txt
+fastapi==0.115.0
+uvicorn[standard]==0.30.6
+httpx==0.28.1
+PyJWT==2.9.0
+python-multipart==0.0.20
+google-genai==2.22.0
+numpy==2.1.3
+faiss-cpu==1.9.0.post1

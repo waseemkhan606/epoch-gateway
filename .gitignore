@@ -1,0 +1,16 @@
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+# Editors / OS
+.idea/
+.vscode/
+.DS_Store
+
+# EPOCH dry-run manifests (Session 17.2 tooling)
+.epoch_state/
+
+# Local scratch
+*.log
